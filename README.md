@@ -20,9 +20,10 @@
   </div>
   <br/>
 </div>
-<div>
+<p>
 Token CA: 4SyefSzhyyUDcYgBfGyLWCnXteo9GDqVDcpZQY7ypump
-</div>
+</p>
+<b /> 
 *Everyone is telling you how to use their agents. But what if YOU need to build an agent for 100,000 users, how would you start?*
 
 **📦 Problem 1: 99% of your DB is just LLM messages.** 
