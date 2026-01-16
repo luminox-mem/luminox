@@ -1,0 +1,74 @@
+{
+  "name": "luminox-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Luminox - Context Data Platform for AI Agents",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src",
+    "e2e": "tsx examples/basic-usage.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "luminox",
+    "ai",
+    "agents",
+    "llm",
+    "context",
+    "sdk",
+    "openai",
+    "anthropic",
+    "typescript"
+  ],
+  "author": "Luminox Team",
+  "license": "Apache-2.0",
+  "homepage": "https://luminox.io",
+  "bugs": {
+    "url": "https://github.com/memodb-io/Luminox/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memodb-io/Luminox.git"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "node-fetch": "^3.3.2",
+    "form-data": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "node-fetch": {
+      "optional": true
+    },
+    "form-data": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

@@ -1,0 +1,444 @@
+"""Tests for agent tools (DISK_TOOLS and SKILL_TOOLS)."""
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from luminox.agent.disk import DISK_TOOLS, DiskContext
+from luminox.agent.skill import SKILL_TOOLS, SkillContext
+from luminox.client import LuminoxClient
+
+
+@pytest.fixture
+def mock_client() -> LuminoxClient:
+    """Create a mock client for testing."""
+    client = LuminoxClient(api_key="test-token", base_url="http://test.api")
+    return client
+
+
+@pytest.fixture
+def disk_ctx(mock_client: LuminoxClient) -> DiskContext:
+    """Create a disk context for testing."""
+    return DISK_TOOLS.format_context(mock_client, "disk-123")
+
+
+class TestDiskTools:
+    """Tests for DISK_TOOLS."""
+
+    def test_disk_tools_schema_generation(self) -> None:
+        """Test that tools can generate OpenAI tool schemas."""
+        schemas = DISK_TOOLS.to_openai_tool_schema()
+        assert isinstance(schemas, list)
+        assert (
+            len(schemas) == 7
+        )  # write_file, read_file, replace_string, list_artifacts, grep_artifacts, glob_artifacts, download_file
+
+        tool_names = [s["function"]["name"] for s in schemas]
+        assert "write_file" in tool_names
+        assert "read_file" in tool_names
+        assert "replace_string" in tool_names
+        assert "list_artifacts" in tool_names
+        assert "grep_artifacts" in tool_names
+        assert "glob_artifacts" in tool_names
+        assert "download_file" in tool_names
+
+    def test_disk_tools_anthropic_schema(self) -> None:
+        """Test Anthropic tool schema generation."""
+        schemas = DISK_TOOLS.to_anthropic_tool_schema()
+        assert isinstance(schemas, list)
+        assert len(schemas) == 7
+
+    def test_disk_tools_tool_exists(self) -> None:
+        """Test tool_exists method."""
+        assert DISK_TOOLS.tool_exists("write_file")
+        assert DISK_TOOLS.tool_exists("read_file")
+        assert not DISK_TOOLS.tool_exists("nonexistent_tool")
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_write_file_tool(
+        self, mock_request: MagicMock, disk_ctx: DiskContext
+    ) -> None:
+        """Test write_file tool execution."""
+        mock_request.return_value = {
+            "disk_id": "disk-123",
+            "path": "/test.txt",
+            "filename": "test.txt",
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        result = DISK_TOOLS.execute_tool(
+            disk_ctx,
+            "write_file",
+            {"filename": "test.txt", "content": "Hello, world!"},
+        )
+
+        assert "written successfully" in result.lower()
+        mock_request.assert_called_once()
+        args, kwargs = mock_request.call_args
+        assert args[0] == "POST"
+        assert args[1] == "/disk/disk-123/artifact"
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_read_file_tool(
+        self, mock_request: MagicMock, disk_ctx: DiskContext
+    ) -> None:
+        """Test read_file tool execution."""
+        mock_request.return_value = {
+            "artifact": {
+                "disk_id": "disk-123",
+                "path": "/test.txt",
+                "filename": "test.txt",
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            "content": {
+                "type": "text",
+                "raw": "Line 1\nLine 2\nLine 3\nLine 4\nLine 5",
+            },
+        }
+
+        result = DISK_TOOLS.execute_tool(
+            disk_ctx,
+            "read_file",
+            {"filename": "test.txt", "line_offset": 1, "line_limit": 2},
+        )
+
+        assert "Line 2" in result
+        assert "Line 3" in result
+        mock_request.assert_called_once()
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_replace_string_tool(
+        self, mock_request: MagicMock, disk_ctx: DiskContext
+    ) -> None:
+        """Test replace_string tool execution."""
+        # Mock read response
+        read_response = {
+            "artifact": {
+                "disk_id": "disk-123",
+                "path": "/test.txt",
+                "filename": "test.txt",
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            "content": {
+                "type": "text",
+                "raw": "Hello, world! Hello again!",
+            },
+        }
+        # Mock write response
+        write_response = {
+            "disk_id": "disk-123",
+            "path": "/test.txt",
+            "filename": "test.txt",
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        mock_request.side_effect = [read_response, write_response]
+
+        result = DISK_TOOLS.execute_tool(
+            disk_ctx,
+            "replace_string",
+            {
+                "filename": "test.txt",
+                "old_string": "Hello",
+                "new_string": "Hi",
+            },
+        )
+
+        assert "replaced" in result.lower()
+        assert mock_request.call_count == 2  # One read, one write
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_list_artifacts_tool(
+        self, mock_request: MagicMock, disk_ctx: DiskContext
+    ) -> None:
+        """Test list_artifacts tool execution."""
+        mock_request.return_value = {
+            "artifacts": [
+                {
+                    "disk_id": "disk-123",
+                    "path": "/file1.txt",
+                    "filename": "file1.txt",
+                    "meta": {},
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+            "directories": ["/subdir/"],
+        }
+
+        result = DISK_TOOLS.execute_tool(
+            disk_ctx,
+            "list_artifacts",
+            {"file_path": "/"},
+        )
+
+        assert "file1.txt" in result
+        assert "subdir" in result.lower()
+        mock_request.assert_called_once()
+
+    def test_write_file_tool_validation(self, disk_ctx: DiskContext) -> None:
+        """Test write_file tool parameter validation."""
+        with pytest.raises(ValueError, match="filename is required"):
+            DISK_TOOLS.execute_tool(disk_ctx, "write_file", {"content": "test"})
+
+        with pytest.raises(ValueError, match="content is required"):
+            DISK_TOOLS.execute_tool(disk_ctx, "write_file", {"filename": "test.txt"})
+
+
+class TestSkillTools:
+    """Tests for SKILL_TOOLS."""
+
+    def test_skill_tools_schema_generation(self) -> None:
+        """Test that tools can generate OpenAI tool schemas."""
+        schemas = SKILL_TOOLS.to_openai_tool_schema()
+        assert isinstance(schemas, list)
+        assert len(schemas) == 3  # list_skills, get_skill, get_skill_file
+
+        tool_names = [s["function"]["name"] for s in schemas]
+        assert "list_skills" in tool_names
+        assert "get_skill" in tool_names
+        assert "get_skill_file" in tool_names
+
+    def test_skill_tools_anthropic_schema(self) -> None:
+        """Test Anthropic tool schema generation."""
+        schemas = SKILL_TOOLS.to_anthropic_tool_schema()
+        assert isinstance(schemas, list)
+        assert len(schemas) == 3
+
+    def test_skill_tools_tool_exists(self) -> None:
+        """Test tool_exists method."""
+        assert SKILL_TOOLS.tool_exists("list_skills")
+        assert SKILL_TOOLS.tool_exists("get_skill")
+        assert SKILL_TOOLS.tool_exists("get_skill_file")
+        assert not SKILL_TOOLS.tool_exists("nonexistent_tool")
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_skill_context_creation(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test SkillContext.create preloads skills and maps by name."""
+        mock_request.side_effect = [
+            {
+                "id": "skill-1",
+                "name": "test-skill",
+                "description": "Test skill",
+                "file_index": [{"path": "SKILL.md", "mime": "text/markdown"}],
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            {
+                "id": "skill-2",
+                "name": "another-skill",
+                "description": "Another skill",
+                "file_index": [],
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+        ]
+
+        ctx = SkillContext.create(mock_client, ["skill-1", "skill-2"])
+
+        assert len(ctx.skills) == 2
+        assert "test-skill" in ctx.skills
+        assert "another-skill" in ctx.skills
+        assert ctx.skills["test-skill"].id == "skill-1"
+        assert ctx.skills["another-skill"].id == "skill-2"
+        assert mock_request.call_count == 2
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_skill_context_duplicate_name_error(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test SkillContext.create raises error on duplicate skill names."""
+        mock_request.side_effect = [
+            {
+                "id": "skill-1",
+                "name": "same-name",
+                "description": "First skill",
+                "file_index": [],
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            {
+                "id": "skill-2",
+                "name": "same-name",
+                "description": "Second skill with same name",
+                "file_index": [],
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+        ]
+
+        with pytest.raises(ValueError, match="Duplicate skill name"):
+            SkillContext.create(mock_client, ["skill-1", "skill-2"])
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_list_skills_tool(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test list_skills tool execution."""
+        mock_request.return_value = {
+            "id": "skill-1",
+            "name": "test-skill",
+            "description": "Test skill description",
+            "file_index": [],
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+        result = SKILL_TOOLS.execute_tool(ctx, "list_skills", {})
+
+        assert "test-skill" in result
+        assert "Test skill description" in result
+        assert "Available skills (1)" in result
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_get_skill_tool(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test get_skill tool execution."""
+        mock_request.return_value = {
+            "id": "skill-1",
+            "name": "test-skill",
+            "description": "Test skill",
+            "file_index": [
+                {"path": "SKILL.md", "mime": "text/markdown"},
+                {"path": "scripts/main.py", "mime": "text/x-python"},
+            ],
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+        result = SKILL_TOOLS.execute_tool(
+            ctx,
+            "get_skill",
+            {"skill_name": "test-skill"},
+        )
+
+        assert "test-skill" in result
+        assert "Test skill" in result
+        assert "2 file(s)" in result
+        # Check that all files are listed with path and mime
+        assert "SKILL.md" in result
+        assert "text/markdown" in result
+        assert "scripts/main.py" in result
+        assert "text/x-python" in result
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_get_skill_file_tool(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test get_skill_file tool execution."""
+        # First call for context creation, second for get_file
+        mock_request.side_effect = [
+            {
+                "id": "skill-1",
+                "name": "test-skill",
+                "description": "Test skill",
+                "file_index": [{"path": "scripts/main.py", "mime": "text/x-python"}],
+                "meta": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            {
+                "path": "scripts/main.py",
+                "mime": "text/x-python",
+                "content": {"type": "code", "raw": "print('Hello, World!')"},
+            },
+        ]
+
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+        result = SKILL_TOOLS.execute_tool(
+            ctx,
+            "get_skill_file",
+            {
+                "skill_name": "test-skill",
+                "file_path": "scripts/main.py",
+            },
+        )
+
+        assert "scripts/main.py" in result
+        assert "text/x-python" in result
+        assert "Hello, World!" in result
+        assert mock_request.call_count == 2
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_get_skill_tool_not_found(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test get_skill tool with skill not in context."""
+        mock_request.return_value = {
+            "id": "skill-1",
+            "name": "test-skill",
+            "description": "Test skill",
+            "file_index": [],
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+
+        with pytest.raises(
+            ValueError, match="Skill 'unknown-skill' not found in context"
+        ):
+            SKILL_TOOLS.execute_tool(ctx, "get_skill", {"skill_name": "unknown-skill"})
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_get_skill_tool_validation(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test get_skill tool parameter validation."""
+        mock_request.return_value = {
+            "id": "skill-1",
+            "name": "test-skill",
+            "description": "Test skill",
+            "file_index": [],
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+
+        with pytest.raises(ValueError, match="skill_name is required"):
+            SKILL_TOOLS.execute_tool(ctx, "get_skill", {})
+
+    @patch("luminox.client.LuminoxClient.request")
+    def test_get_skill_file_tool_validation(
+        self, mock_request: MagicMock, mock_client: LuminoxClient
+    ) -> None:
+        """Test get_skill_file tool parameter validation."""
+        mock_request.return_value = {
+            "id": "skill-1",
+            "name": "test-skill",
+            "description": "Test skill",
+            "file_index": [],
+            "meta": {},
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+        ctx = SKILL_TOOLS.format_context(mock_client, ["skill-1"])
+
+        with pytest.raises(ValueError, match="skill_name is required"):
+            SKILL_TOOLS.execute_tool(ctx, "get_skill_file", {"file_path": "test.py"})
+
+        with pytest.raises(ValueError, match="file_path is required"):
+            SKILL_TOOLS.execute_tool(
+                ctx, "get_skill_file", {"skill_name": "test-skill"}
+            )

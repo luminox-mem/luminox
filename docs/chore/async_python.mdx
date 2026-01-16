@@ -1,0 +1,140 @@
+---
+title: "Async Python Client"
+---
+
+
+You can use async python client:
+
+```python Python
+from luminox import LuminoxAsyncClient
+
+client = LuminoxAsyncClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+# If you're using self-hosted Luminox:
+# client = LuminoxAsyncClient(
+#     base_url="http://localhost:8029/api/v1",
+#     api_key="sk-ac-your-root-api-bearer-token",
+# )
+print(await client.ping())
+session = await client.sessions.create()
+# ...
+```
+
+Every method is available in async client, just add `await` prefix to the method call.
+
+## Async Agentic Tools
+
+The [Filesystem Tools](/sdk/disk_tools) and [Skill Tools](/sdk/skill_tools) also support async operations. Use `async_format_context()` and `async_execute_tool()` methods with `LuminoxAsyncClient`.
+
+### Async Disk Tools
+
+```python Python
+import json
+from luminox import LuminoxAsyncClient
+from luminox.agent.disk import DISK_TOOLS
+from openai import AsyncOpenAI
+
+# Initialize async clients
+luminox_client = LuminoxAsyncClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+openai_client = AsyncOpenAI()
+
+# Create a disk and async tool context
+disk = await luminox_client.disks.create()
+ctx = await DISK_TOOLS.async_format_context(luminox_client, disk.id)
+
+# Get tool schemas for OpenAI
+tools = DISK_TOOLS.to_openai_tool_schema()
+
+# Async agentic loop
+messages = [
+    {"role": "user", "content": "Create a todo.md file with 3 tasks"}
+]
+
+while True:
+    response = await openai_client.chat.completions.create(
+        model="gpt-4.1",
+        messages=messages,
+        tools=tools,
+    )
+
+    message = response.choices[0].message
+    messages.append(message)
+
+    if not message.tool_calls:
+        print(f"🤖 Assistant: {message.content}")
+        break
+
+    # Execute each tool call asynchronously
+    for tool_call in message.tool_calls:
+        print(f"⚙️ Called {tool_call.function.name}")
+        result = await DISK_TOOLS.async_execute_tool(
+            ctx, tool_call.function.name, json.loads(tool_call.function.arguments)
+        )
+        print(f"🔍 Result: {result}")
+        messages.append(
+            {"role": "tool", "tool_call_id": tool_call.id, "content": result}
+        )
+```
+
+### Async Skill Tools
+
+```python Python
+import json
+from luminox import LuminoxAsyncClient
+from luminox.agent.skill import SKILL_TOOLS
+from openai import AsyncOpenAI
+
+# Initialize async clients
+luminox_client = LuminoxAsyncClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+openai_client = AsyncOpenAI()
+
+# Preload skills and create async tool context
+skill_ids = ["uuid-of-skill-1", "uuid-of-skill-2"]
+ctx = await SKILL_TOOLS.async_format_context(luminox_client, skill_ids)
+
+# Get tool schemas for OpenAI
+tools = SKILL_TOOLS.to_openai_tool_schema()
+
+# Async agentic loop
+messages = [
+    {"role": "user", "content": "List the available skills and read the SKILL.md from the first one"}
+]
+
+while True:
+    response = await openai_client.chat.completions.create(
+        model="gpt-4.1",
+        messages=messages,
+        tools=tools,
+    )
+
+    message = response.choices[0].message
+    messages.append(message)
+
+    if not message.tool_calls:
+        print(f"🤖 Assistant: {message.content}")
+        break
+
+    # Execute each tool call asynchronously
+    for tool_call in message.tool_calls:
+        print(f"⚙️ Called {tool_call.function.name}")
+        result = await SKILL_TOOLS.async_execute_tool(
+            ctx, tool_call.function.name, json.loads(tool_call.function.arguments)
+        )
+        print(f"🔍 Result: {result}")
+        messages.append(
+            {"role": "tool", "tool_call_id": tool_call.id, "content": result}
+        )
+```
+
+<Tip>
+The async versions are identical to the sync versions except:
+- Use `LuminoxAsyncClient` instead of `LuminoxClient`
+- Use `await async_format_context()` instead of `format_context()`
+- Use `await async_execute_tool()` instead of `execute_tool()`
+</Tip>

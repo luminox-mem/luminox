@@ -1,0 +1,187 @@
+---
+title: 'Introduction'
+description: 'Build AI agents with context storage, semantic search, and learning capabilities'
+---
+
+## Overview
+
+Luminox provides a REST API for building AI agents with persistent context, semantic search, and self-learning capabilities.
+
+<CardGroup cols={2}>
+  <Card title="REST API" icon="code" iconType="solid">
+    RESTful endpoints with predictable URLs
+  </Card>
+  <Card title="OpenAPI 3.0" icon="file-code" iconType="solid"> 
+    Full OpenAPI specification available
+  </Card>
+  <Card title="Multi-format Support" icon="layer-group" iconType="solid">
+    OpenAI, Anthropic, Gemini, and native formats
+  </Card>
+  <Card title="Client SDKs" icon="puzzle-piece" iconType="solid">
+    Python and TypeScript libraries
+  </Card>
+</CardGroup>
+
+## Authentication
+
+All API requests require a Bearer token in the `Authorization` header:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+<Warning>
+Keep your API keys secure and never expose them in client-side code.
+</Warning>
+
+## Install SDKs
+
+<CodeGroup>
+```bash Python
+pip install luminox
+```
+
+```bash TypeScript
+npm install luminox-sdk
+```
+</CodeGroup>
+
+## Quick Start
+
+<CodeGroup>
+```python Python
+import os
+from luminox import LuminoxClient
+
+# Initialize client
+client = LuminoxClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+# If you're using self-hosted Luminox:
+# client = LuminoxClient(
+#     base_url="http://localhost:8029/api/v1",
+#     api_key="sk-ac-your-root-api-bearer-token",
+# )
+
+# Create a knowledge space
+space = client.spaces.create()
+
+# Create a session connected to the space
+session = client.sessions.create(space_id=space.id)
+
+# Store a message
+client.sessions.store_message(
+    session.id,
+    blob={'role': 'user', 'content': 'How do I reset my password?'}
+)
+
+# Search the knowledge base
+results = client.spaces.experience_search(
+    space.id,
+    query='password reset process',
+    mode='agentic'
+)
+```
+
+```typescript TypeScript
+import { LuminoxClient } from 'luminox-sdk';
+
+// Initialize client
+const client = new LuminoxClient({
+    apiKey: process.env.LUMINOX_API_KEY,
+});
+
+// If you're using self-hosted Luminox:
+// const client = new LuminoxClient({
+//     baseUrl: "http://localhost:8029/api/v1",
+//     apiKey: "sk-ac-your-root-api-bearer-token",
+// });
+
+// Create a knowledge space
+const space = await client.spaces.create();
+
+// Create a session connected to the space
+const session = await client.sessions.create({ spaceId: space.id });
+
+// Store a message
+await client.sessions.storeMessage(
+  session.id,
+  { role: 'user', content: 'How do I reset my password?' }
+);
+
+// Search the knowledge base
+const results = await client.spaces.experienceSearch(space.id, {
+  query: 'password reset process',
+  mode: 'agentic'
+});
+```
+</CodeGroup>
+
+## Core Concepts
+
+<AccordionGroup>
+  <Accordion title="Spaces" icon="cube">
+    Knowledge spaces store structured information with semantic search capabilities. Each space can contain pages, folders, and content blocks.
+  </Accordion>
+
+  <Accordion title="Sessions" icon="messages">
+    Sessions represent conversation threads with message history. Connect sessions to spaces to leverage stored knowledge.
+  </Accordion>
+
+  <Accordion title="Blocks" icon="block">
+    Building units of knowledge: pages, folders, text blocks, and SOPs. Blocks support rich properties and nested structures.
+  </Accordion>
+
+  <Accordion title="Disks" icon="hard-drive">
+    Isolated storage groups for organizing multiple knowledge bases within a project.
+  </Accordion>
+
+  <Accordion title="Tools" icon="wrench">
+    Capabilities that AI agents can use. Manage and configure tools across your project.
+  </Accordion>
+</AccordionGroup>
+
+## API Resources
+
+<CardGroup cols={2}>
+  <Card title="Disks" icon="hard-drive" href="#disk">
+    Manage storage groups
+  </Card>
+  <Card title="Sessions" icon="messages" href="#session">
+    Handle conversations and messages
+  </Card>
+  <Card title="Spaces" icon="cube" href="#space">
+    Create and search knowledge bases
+  </Card>
+  <Card title="Blocks" icon="block" href="#block">
+    Manage content structure
+  </Card>
+  <Card title="Tools" icon="wrench" href="#tool">
+    Configure agent capabilities
+  </Card>
+  <Card title="Search" icon="magnifying-glass" href="#space">
+    Semantic and agentic search
+  </Card>
+</CardGroup>
+
+## Message Formats
+
+Luminox supports multiple message formats for compatibility:
+
+- **OpenAI** - Compatible with OpenAI Chat Completion format (default)
+- **Anthropic** - Compatible with Anthropic Messages format
+- **Gemini** - Compatible with Google Gemini Messages format
+
+Convert between formats when retrieving or storing messages using the `format` parameter.
+
+## Community
+
+<CardGroup cols={2}>
+  <Card title="GitHub" icon="github" href="https://github.com/memodb-io/Luminox">
+    Report issues and contribute
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.luminox.io">
+    Join our community
+  </Card>
+</CardGroup>

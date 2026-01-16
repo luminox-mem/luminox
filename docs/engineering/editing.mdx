@@ -1,0 +1,387 @@
+---
+title: Context Editing
+description: "Luminox offers few context editing methods for your agent context management."
+---
+
+Context Editing is a crucial part of context engineering. If you have questions about what is context editing, please refer to the [Context Engineering](#context-engineering-and-editing) section.
+
+## Current Context Window Size
+The `get_messages` response includes a `this_time_tokens` field that returns the total token count of the returned messages. 
+This is particularly useful when:
+- figuring out the current context window size.
+- determining if you should apply edit strategies to reduce the context window size.
+- determining if you should [reset the prompt cache](/engineering/cache).
+
+<CodeGroup>
+```python Python
+result = client.sessions.get_messages(
+    session_id="session-uuid",
+    edit_strategies=[
+        {"type": "token_limit", "params": {"limit_tokens": 20000}}
+    ]
+)
+print(f"Returned {len(result.items)} messages")
+print(f"This time tokens: {result.this_time_tokens}")
+```
+
+```typescript TypeScript
+const result = await client.sessions.getMessages('session-uuid', {
+    editStrategies: [
+        { type: 'token_limit', params: { limit_tokens: 20000 } }
+    ]
+});
+console.log(`Returned ${result.items.length} messages`);
+console.log(`This time tokens: ${result.this_time_tokens}`);
+```
+</CodeGroup>
+
+## Context Editing On-the-fly
+Luminox supports to edit the session context when you obtain the current messages.
+
+The basic usage is to pass the `edit_strategies` to the `get_messages` method to get the edited session messages without modifying the original session storage:
+
+<CodeGroup>
+```python Python
+from luminox import LuminoxClient
+
+client = LuminoxClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid"
+  edit_strategies=[
+    {"type": "STRATEGY_NAME1", "params": {...}},
+    {"type": "STRATEGY_NAME2", "params": {...}},
+    ...
+  ],
+)
+
+original_session = client.sessions.get_messages(
+  session_id="session-uuid"
+)
+```
+```typescript TypeScript
+import { LuminoxClient } from 'luminox-sdk';
+
+const client = new LuminoxClient({
+    apiKey: process.env.LUMINOX_API_KEY,
+});
+
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies:[
+    { type: 'STRATEGY_NAME1' as const, params: {...} },
+    { type: 'STRATEGY_NAME2' as const, params: {...} },
+    ...
+  ] 
+});
+
+const originalSession = await client.sessions.getMessages('session-uuid');
+```
+</CodeGroup>
+
+<Info>
+**Prompt Cache Stability:** Edit strategies can break LLM prompt caching. 
+Learn how to use `pin_editing_strategies_at_message` to maintain cache hits in the [Prompt Cache Stability](/engineering/cache) guide.
+</Info>
+
+### Token Limit
+This strategy truncates messages based on token count, removing the oldest messages until the total token count is within the specified limit. 
+
+It's useful for managing context window limits and ensuring your session stays within model constraints.
+
+It will:
+- Removes messages from oldest to newest
+- Maintains tool-call/tool-result pairing (when removing a tool-call, its corresponding tool-result is also removed)
+
+**Example Output:**
+
+<CodeGroup>
+```json Before (5 messages, ~25,000 tokens)
+[
+  {"role": "user", "content": "What's the weather in NYC?"},
+  {"role": "assistant", "content": "...", "tool_calls": [...]},
+  {"role": "tool", "content": "Temperature: 72°F"},
+  {"role": "assistant", "content": "The weather in NYC is 72°F and sunny."},
+  {"role": "user", "content": "What about Boston?"}
+]
+```
+
+```json After (limit_tokens: 20000)
+[
+  {"role": "assistant", "content": "The weather in NYC is 72°F and sunny."},
+  {"role": "user", "content": "What about Boston?"}
+]
+```
+</CodeGroup>
+
+**Usage:**
+<CodeGroup>
+```python Python
+# Limit session to 20,000 tokens
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid",
+  edit_strategies=[
+    {
+      "type": "token_limit",
+      "params": {
+        "limit_tokens": 20000
+      }
+    }
+  ],
+)
+```
+```typescript TypeScript
+// Limit session to 20,000 tokens
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies: [
+    {
+      type: 'token_limit' as const,
+      params: {
+        limit_tokens: 20000
+      }
+    }
+  ],
+});
+```
+</CodeGroup>
+
+
+### Remove Tool Result
+This strategy will replace the oldest tool results' content with a placeholder text to reduce the session context, while keeping the most recent N tool results intact.
+
+**Parameters:**
+- `keep_recent_n_tool_results` (optional, default: 3): Number of most recent tool results to keep with original content
+- `tool_result_placeholder` (optional, default: "Done"): Custom text to replace old tool results with
+- `keep_tools` (optional): List of tool names that should never have their results removed. Tool results from these tools are always kept regardless of `keep_recent_n_tool_results`
+
+**Example Output:**
+
+<CodeGroup>
+```json Before (3 tool results with full content)
+[
+  {"role": "user", "content": "Check weather in 5 cities"},
+  {"role": "assistant", "tool_calls": [{"id": "1", "name": "get_weather", "arguments": "{\"city\":\"NYC\"}"}]},
+  {"role": "tool", "tool_call_id": "1", "content": "Temperature: 72°F, Humidity: 65%, Wind: 10mph..."},
+  {"role": "assistant", "tool_calls": [{"id": "2", "name": "get_weather", "arguments": "{\"city\":\"LA\"}"}]},
+  {"role": "tool", "tool_call_id": "2", "content": "Temperature: 85°F, Humidity: 45%, Wind: 5mph..."},
+  {"role": "assistant", "tool_calls": [{"id": "3", "name": "get_weather", "arguments": "{\"city\":\"Chicago\"}"}]},
+  {"role": "tool", "tool_call_id": "3", "content": "Temperature: 68°F, Humidity: 70%, Wind: 15mph..."}
+]
+```
+
+```json After (keep_recent_n_tool_results: 1)
+[
+  {"role": "user", "content": "Check weather in 5 cities"},
+  {"role": "assistant", "tool_calls": [{"id": "1", "name": "get_weather", "arguments": "{\"city\":\"NYC\"}"}]},
+  {"role": "tool", "tool_call_id": "1", "content": "Done"},
+  {"role": "assistant", "tool_calls": [{"id": "2", "name": "get_weather", "arguments": "{\"city\":\"LA\"}"}]},
+  {"role": "tool", "tool_call_id": "2", "content": "Done"},
+  {"role": "assistant", "tool_calls": [{"id": "3", "name": "get_weather", "arguments": "{\"city\":\"Chicago\"}"}]},
+  {"role": "tool", "tool_call_id": "3", "content": "Temperature: 68°F, Humidity: 70%, Wind: 15mph..."}
+]
+```
+</CodeGroup>
+
+**Usage:**
+<CodeGroup>
+```python Python
+# With explicit parameters
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid",
+  edit_strategies=[
+    {
+      "type": "remove_tool_result",
+      "params": {
+        "keep_recent_n_tool_results": 5,
+        "tool_result_placeholder": "Tool output removed"
+      }
+    }
+  ],
+)
+
+# Using defaults (keeps 3 most recent, replaces with "Done")
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid",
+  edit_strategies=[
+    {"type": "remove_tool_result"}
+  ],
+)
+```
+```typescript TypeScript
+// With explicit parameters
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies: [
+    {
+      type: 'remove_tool_result' as const,
+      params: {
+        keep_recent_n_tool_results: 5,
+        tool_result_placeholder: 'Tool output removed'
+      }
+    }
+  ],
+});
+
+// Using defaults (keeps 3 most recent, replaces with "Done")
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies: [
+    { type: 'remove_tool_result' as const }
+  ],
+});
+```
+</CodeGroup>
+
+### Remove Tool Call Params
+This strategy removes parameters from old tool-call parts to reduce the session context, while keeping the most recent N tool calls with their full parameters intact.
+
+This is particularly useful when you have many tool calls in your session history and want to reduce token usage by removing the detailed arguments from older tool calls, while still maintaining the tool call structure (ID and name) so that tool-results can still reference them.
+
+**Parameters:**
+- `keep_recent_n_tool_calls` (optional, default: 3): Number of most recent tool calls to keep with full parameters
+- `keep_tools` (optional): List of tool names that should never have their parameters removed. Tool calls for these tools always keep their full parameters regardless of `keep_recent_n_tool_calls`
+
+**How it works:**
+- Keeps the most recent N tool calls with their original parameters
+- Replaces older tool call arguments with empty JSON `{}`
+- Tool call ID and name remain intact so tool-results can still reference them
+
+**Example Output:**
+
+<CodeGroup>
+```json Before (3 tool calls with full arguments)
+[
+  {"role": "user", "content": "Analyze sales data for all regions"},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_1", "name": "query_database", "arguments": "{\"query\":\"SELECT * FROM sales WHERE region='North' AND date > '2024-01-01'\",\"limit\":1000}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_1", "content": "Results: 1500 rows..."},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_2", "name": "query_database", "arguments": "{\"query\":\"SELECT * FROM sales WHERE region='South' AND date > '2024-01-01'\",\"limit\":1000}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_2", "content": "Results: 1200 rows..."},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_3", "name": "calculate_metrics", "arguments": "{\"data\":[...],\"metrics\":[\"average\",\"total\",\"growth\"]}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_3", "content": "Average: $5000, Total: $2.5M..."}
+]
+```
+
+```json After (keep_recent_n_tool_calls: 1)
+[
+  {"role": "user", "content": "Analyze sales data for all regions"},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_1", "name": "query_database", "arguments": "{}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_1", "content": "Results: 1500 rows..."},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_2", "name": "query_database", "arguments": "{}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_2", "content": "Results: 1200 rows..."},
+  {"role": "assistant", "tool_calls": [
+    {"id": "call_3", "name": "calculate_metrics", "arguments": "{\"data\":[...],\"metrics\":[\"average\",\"total\",\"growth\"]}"}
+  ]},
+  {"role": "tool", "tool_call_id": "call_3", "content": "Average: $5000, Total: $2.5M..."}
+]
+```
+</CodeGroup>
+
+**Usage:**
+<CodeGroup>
+```python Python
+# With explicit parameters
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid",
+  edit_strategies=[
+    {
+      "type": "remove_tool_call_params",
+      "params": {
+        "keep_recent_n_tool_calls": 5
+      }
+    }
+  ],
+)
+
+# Using defaults (keeps 3 most recent tool calls)
+edited_session = client.sessions.get_messages(
+  session_id="session-uuid",
+  edit_strategies=[
+    {"type": "remove_tool_call_params"}
+  ],
+)
+```
+```typescript TypeScript
+// With explicit parameters
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies: [
+    {
+      type: 'remove_tool_call_params' as const,
+      params: {
+        keep_recent_n_tool_calls: 5
+      }
+    }
+  ],
+});
+
+// Using defaults (keeps 3 most recent tool calls)
+const editedSession = await client.sessions.getMessages('session-uuid', {
+  editStrategies: [
+    { type: 'remove_tool_call_params' as const }
+  ],
+});
+```
+</CodeGroup>
+
+
+## Count the Session Raw Messages Tokens
+
+Performing context editing won't affect the original session messages.
+
+If you like to know the total token count of the raw messages, `get_token_counts()` method returns the total token count for all text and tool-call parts in a session.
+
+<CodeGroup>
+```python Python
+import os
+from luminox import LuminoxClient
+
+client = LuminoxClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+# If you're using self-hosted Luminox:
+# client = LuminoxClient(
+#     base_url="http://localhost:8029/api/v1",
+#     api_key="sk-ac-your-root-api-bearer-token",
+# )
+
+# Get token counts for a session
+token_counts = client.sessions.get_token_counts(session_id="session-uuid")
+
+print(f"Total tokens: {token_counts.total_tokens}")
+```
+
+```typescript TypeScript
+import { LuminoxClient } from 'luminox-sdk';
+
+const client = new LuminoxClient({
+    apiKey: process.env.LUMINOX_API_KEY,
+});
+
+// If you're using self-hosted Luminox:
+// const client = new LuminoxClient({
+//     baseUrl: "http://localhost:8029/api/v1",
+//     apiKey: "sk-ac-your-root-api-bearer-token",
+// });
+
+// Get token counts for a session
+const tokenCounts = await client.sessions.getTokenCounts('session-uuid');
+
+console.log(`Total tokens: ${tokenCounts.total_tokens}`);
+```
+</CodeGroup>
+
+<Info>
+The token count of Luminox is relative and proportional to the length of your session. 
+You can use it to determine whether the current session is too long and needs to be edited. 
+
+Please do not use the token count to calculate the cost of LLM, as the actual token consumption of each LLM can vary subtly.
+</Info>

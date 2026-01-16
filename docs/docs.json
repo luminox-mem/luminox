@@ -1,0 +1,221 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Luminox Docs",
+  "colors": {
+    "primary": "#0EA5E9",
+    "light": "#7DD3FC",
+    "dark": "#0284C7"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "icon": "rocket",
+            "pages": [
+              "index",
+              "quick",
+              "llm_quick"
+            ]
+          },
+          {
+            "group": "Context Storage",
+            "icon": "database",
+            "pages": [
+              {
+                "group": "Messages",
+                "pages": [
+                  "store/messages/multi-provider",
+                  "store/messages/multi-modal",
+                  {
+                    "group": "Message Metadata",
+                    "pages": [
+                      "store/messages/special/anthropic"
+                    ]
+                  }
+                ]
+              },
+              "store/disk",
+              "store/skill"
+            ]
+          },
+          {
+            "group": "Context Engineering",
+            "icon": "scissors",
+            "pages": [
+              "engineering/whatis",
+              "engineering/session_summary",
+              "engineering/editing",
+              "engineering/cache"
+            ]
+          },
+          {
+            "group": "Agent Tools",
+            "icon": "wand-magic-sparkles",
+            "pages": [
+              "sdk/disk_tools",
+              "sdk/skill_tools"
+            ]
+          },
+          {
+            "group": "Agent Observability",
+            "icon": "radar",
+            "pages": [
+              {
+                "group": "Agent Task Monitoring",
+                "pages": [
+                  "observe/agent_tasks",
+                  "observe/buffer",
+                  "observe/disable_tasks"
+                ]
+              },
+              {
+                "group": "BI and Traces",
+                "pages": [
+                  "observe/dashboard",
+                  "observe/traces"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Agent Self-learning",
+            "icon": "sparkles",
+            "pages": [
+              "learn/skill-space",
+              "learn/search-skills",
+              {
+                "group": "Advance",
+                "pages": [
+                  "learn/tool",
+                  "learn/advance/wait-user",
+                  "learn/advance/design-complex",
+                  "learn/advance/experience-agent"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Miscellaneous",
+            "icon": "ellipsis",
+            "pages": [
+              "chore/per-user",
+              "chore/async_python",
+              "chore/badge"
+            ]
+          },
+          {
+            "group": "Customization",
+            "icon": "gear",
+            "pages": [
+              "settings/local",
+              "settings/core",
+              "settings/runtime"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Integrations",
+        "pages": [
+          "integrations/intro",
+          "integrations/agno",
+          "integrations/openai-python",
+          "integrations/openai-typescript",
+          "integrations/openai_agent",
+          "integrations/ai-sdk"
+        ]
+      },
+      {
+        "tab": "API References",
+        "groups": [
+          {
+            "group": "API References",
+            "pages": [
+              "api-reference/introduction"
+            ],
+            "openapi": "api-reference/openapi.json"
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Home",
+          "href": "https://luminox.io",
+          "icon": "home"
+        },
+        {
+          "anchor": "Readme",
+          "href": "https://github.com/memodb-io/Luminox",
+          "icon": "github"
+        },
+        {
+          "anchor": "Discord",
+          "href": "https://discord.luminox.io",
+          "icon": "discord"
+        },
+        {
+          "anchor": "Blog",
+          "href": "https://luminox.io/blog",
+          "icon": "newspaper"
+        },
+        {
+          "anchor": "Integrations",
+          "href": "https://docs.luminox.io/integrations",
+          "icon": "plug"
+        },
+        {
+          "anchor": "API",
+          "href": "https://docs.luminox.io/api-reference",
+          "icon": "code"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Feedback",
+        "href": "mailto:feedback@luminox.io"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Github",
+      "href": "https://github.com/memodb-io/Luminox"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "mcp",
+      "cursor"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/luminox_io",
+      "github": "https://github.com/memodb-io/Luminox",
+      "discord": "https://discord.luminox.io",
+      "linkedin": "https://linkedin.com/company/Luminox"
+    }
+  },
+  "integrations": {
+    "ga4": {
+      "measurementId": "G-Y2R02LY9NV"
+    },
+    "gtm": {
+      "tagId": "GTM-KQ7H272M"
+    }
+  }
+}

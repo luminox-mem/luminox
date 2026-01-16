@@ -1,0 +1,26 @@
+[project]
+name = "luminox"
+version = "0.1.2"
+description = "Python SDK for the Luminox API"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.28.1",
+    "openai>=2.6.1",
+    "anthropic>=0.72.0",
+    "pydantic>=2.12.3",
+    "urllib3>=2.6.3",
+]
+keywords = ["luminox", "sdk", "client", "api"]
+
+[project.urls]
+Homepage = "https://github.com/memodb-io/Luminox"
+Repository = "https://github.com/memodb-io/Luminox"
+Issues = "https://github.com/memodb-io/Luminox/issues"
+
+[dependency-groups]
+dev = ["pytest", "ruff", "pytest-asyncio"]
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"

@@ -1,0 +1,430 @@
+---
+title: "Observe Agent Tasks"
+description: "Automatically extract and monitor tasks from agent conversations to understand agent planning and execution"
+---
+
+Luminox automatically extracts tasks from your agent's conversation messages. When an agent outlines a plan or breaks down work into steps, Luminox detects and tracks these tasks in the background, giving you visibility into what your agent is planning and executing.
+
+## How Task Extraction Works
+
+As your agent converses with users, Luminox analyzes the conversation context to identify planned tasks. For example, when an agent responds with "My plan is: 1. Search for data, 2. Create a project, 3. Deploy", Luminox extracts these as individual trackable tasks.
+
+**Key capabilities:**
+- **Automatic extraction**: Tasks are detected from conversation context without manual tracking
+- **Status monitoring**: Track whether tasks are `pending`, `running`, `success`, or `failed`
+- **Execution insights**: See what your agent planned versus what it actually completed
+
+### Task Extraction Has a Delay
+
+Task extraction happens asynchronously with a small delay to optimize costs and performance:
+
+**Batch Processing for Cost Efficiency:**
+- Luminox batches multiple messages together before analyzing them for tasks
+- This reduces the number of LLM calls needed for extraction, saving costs
+- The system waits a few seconds to collect messages before starting extraction
+
+You can use `flush` method for blocking and waiting for all the tasks to be extracted.
+In production, you don't need to call this method, Luminox will automatically flush the buffer when the buffer is full or IDLE. To understand the buffer mechanism, please refer to [Session Buffer Mechanism](/observe/buffer).
+<CodeGroup>
+```python Python
+client.sessions.flush(session.id)
+```
+
+```typescript TypeScript
+await client.sessions.flush(session.id);
+```
+</CodeGroup>
+## Quick Start: Test Task Extraction
+
+This example demonstrates how to verify that Luminox correctly extracts tasks from your agent's messages. You'll store a conversation where the agent outlines a plan, then retrieve the extracted tasks to confirm they were detected.
+
+<CodeGroup>
+```python Python
+import os
+import time
+from luminox import LuminoxClient
+
+# Initialize client
+client = LuminoxClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+# If you're using self-hosted Luminox:
+# client = LuminoxClient(
+#     base_url="http://localhost:8029/api/v1",
+#     api_key="sk-ac-your-root-api-bearer-token",
+# )
+
+# Create a project and session
+session = client.sessions.create()
+
+# Conversation messages
+messages = [
+    {
+        "role": "user",
+        "content": "I need to write a landing page of iPhone 15 pro max"
+    },
+    {
+        "role": "assistant",
+        "content": "Sure, my plan is below:\n1. Search for the latest news about iPhone 15 pro max\n2. Init Next.js project for the landing page\n3. Deploy the landing page to the website"
+    },
+    {
+        "role": "user",
+        "content": "That sounds good. Let's first collect the message and report to me before any landing page coding."
+    },
+    {
+        "role": "assistant",
+        "content": "Sure, I will first collect the message then report to you before any landing page coding."
+    }
+]
+
+# Store messages in a loop
+for msg in messages:
+    client.sessions.store_message(
+        session_id=session.id,
+        blob=msg,
+        format="openai"
+    )
+
+# Wait for task extraction to complete
+client.sessions.flush(session.id)
+# Display extracted tasks
+tasks_response = client.sessions.get_tasks(session.id)
+print(tasks_response)
+for task in tasks_response.items:
+    print(f"\nTask #{task.order}:")
+    print(f"  ID: {task.id}")
+    print(f"  Title: {task.data.task_description}")
+    print(f"  Status: {task.status}")
+
+    # Show progress updates if available
+    if task.data.progresses:
+        print(f"  Progress updates: {len(task.data.progresses)}")
+        for progress in task.data.progresses:
+            print(f"    - {progress}")
+
+    # Show user preferences if available
+    if task.data.user_preferences:
+        print("  User preferences:")
+        for pref in task.data.user_preferences:
+            print(f"    - {pref}")
+```
+
+```typescript TypeScript
+import { LuminoxClient } from 'luminox-sdk';
+
+// Initialize client
+const client = new LuminoxClient({
+    apiKey: process.env.LUMINOX_API_KEY,
+});
+
+// If you're using self-hosted Luminox:
+// const client = new LuminoxClient({
+//     baseUrl: "http://localhost:8029/api/v1",
+//     apiKey: "sk-ac-your-root-api-bearer-token",
+// });
+
+async function demonstrateTasks() {
+    // Create a project and session
+    const project = await client.spaces.createProject({
+        name: 'iPhone Landing Page Project'
+    });
+    const session = await client.sessions.create({
+        projectId: project.id
+    });
+
+    // Conversation messages
+    const messages = [
+        {
+            role: 'user',
+            content: 'I need to write a landing page of iPhone 15 pro max'
+        },
+        {
+            role: 'assistant',
+            content: 'Sure, my plan is below:\n1. Search for the latest news about iPhone 15 pro max\n2. Init Next.js project for the landing page\n3. Deploy the landing page to the website'
+        },
+        {
+            role: 'user',
+            content: "That sounds good. Let's first collect the message and report to me before any landing page coding."
+        },
+        {
+            role: 'assistant',
+            content: 'Sure, I will first collect the message then report to you before any landing page coding.'
+        }
+    ];
+
+    // Store messages in a loop
+    for (const msg of messages) {
+        await client.sessions.storeMessage(session.id, {
+            blob: msg,
+            format: 'openai'
+        });
+    }
+
+    // Wait for task extraction to complete
+    await client.sessions.flush(session.id);
+    // Display extracted tasks
+    const tasksResponse = await client.sessions.getTasks(session.id);
+    console.log(tasksResponse);
+    for (const task of tasksResponse.items) {
+        console.log(`\nTask #${task.order}:`);
+        console.log(`  ID: ${task.id}`);
+        console.log(`  Title: ${task.data.task_description}`);
+        console.log(`  Status: ${task.status}`);
+
+        // Show progress updates if available
+        if (task.data.progresses) {
+            console.log(`  Progress updates: ${task.data.progresses.length}`);
+            task.data.progresses.forEach(progress => {
+                console.log(`    - ${progress}`);
+            });
+        }
+
+        // Show user preferences if available
+        if (task.data.user_preferences) {
+            console.log(`  User preferences:`);
+            task.data.user_preferences.forEach(pref => {
+                console.log(`    - ${pref}`);
+            });
+        }
+    }
+}
+
+demonstrateTasks();
+```
+</CodeGroup>
+
+<Check>
+After running this code, you'll see the tasks that Luminox automatically extracted from the agent's planned steps, confirming the extraction is working correctly.
+</Check>
+
+## Understanding Task Data
+
+Each extracted task contains a `data` field with structured information captured from the conversation. The `data` field is a `TaskData` object with the following schema:
+
+<CodeGroup>
+```python Python
+from luminox import TaskData
+
+# TaskData structure
+task_data = TaskData(
+    task_description="Search for the latest news about iPhone 15 pro max",
+    progresses=[
+        "I searched for iPhone 15 Pro Max specifications and found the latest features",
+        "I've initialized the Next.js project with the latest template"
+    ],
+    user_preferences=[
+        "Focus on the camera capabilities and battery life",
+        "Make sure the landing page is mobile-responsive"
+    ]
+)
+```
+
+```typescript TypeScript
+import { TaskData } from 'luminox-sdk';
+
+// TaskData structure
+const taskData: TaskData = {
+    task_description: "Search for the latest news about iPhone 15 pro max",
+    progresses: [
+        "I searched for iPhone 15 Pro Max specifications and found the latest features",
+        "I've initialized the Next.js project with the latest template"
+    ],
+    user_preferences: [
+        "Focus on the camera capabilities and battery life",
+        "Make sure the landing page is mobile-responsive"
+    ]
+};
+```
+</CodeGroup>
+
+### TaskData Fields
+
+- **`task_description`** (string, required): A clear description of the task
+- **`progresses`** (array of strings, optional): Agent's narrative updates as it works through the task
+- **`user_preferences`** (array of strings, optional): Specific requirements or preferences mentioned by the user
+
+### Progress Tracking
+
+The `progresses` array captures the agent's narrative updates as it works through tasks. Each entry describes what the agent accomplished, written in first-person perspective.
+
+<CodeGroup>
+```python Python
+# Access progress updates using structured TaskData
+for task in tasks_response.items:
+    if task.data.progresses:
+        print(f"Task {task.order} progress:")
+        for progress in task.data.progresses:
+            print(f"  - {progress}")
+```
+
+```typescript TypeScript
+// Access progress updates using structured TaskData
+for (const task of tasksResponse.items) {
+    if (task.data.progresses) {
+        console.log(`Task ${task.order} progress:`);
+        task.data.progresses.forEach(progress => {
+            console.log(`  - ${progress}`);
+        });
+    }
+}
+```
+</CodeGroup>
+
+### User Preferences
+
+The `user_preferences` array stores specific requirements or preferences the user mentioned for each task during the conversation.
+
+<CodeGroup>
+```python Python
+# Check user preferences for a task using structured TaskData
+for task in tasks_response.items:
+    if task.data.user_preferences:
+        print(f"Task {task.order} user preferences:")
+        for pref in task.data.user_preferences:
+            print(f"  - {pref}")
+```
+
+```typescript TypeScript
+// Check user preferences for a task using structured TaskData
+for (const task of tasksResponse.items) {
+    if (task.data.user_preferences) {
+        console.log(`Task ${task.order} user preferences:`);
+        task.data.user_preferences.forEach(pref => {
+            console.log(`  - ${pref}`);
+        });
+    }
+}
+```
+</CodeGroup>
+
+<Note>
+Progress and preferences are appended to tasks as the conversation continues. Early in a conversation, these arrays may be empty or contain only initial entries.
+</Note>
+
+## View it in Dashboard
+
+You can view the tasks in the UI by clicking on the "Tasks" tab in the session page.
+
+<Frame caption="Task list showing all extracted tasks with their status">
+<img src="/images/dashboard/session_task_viewer.png" alt="Task list view displaying multiple tasks with their order, status, and basic information" />
+</Frame>
+
+<br/>
+
+<Frame caption="Detailed task view showing progress updates and user preferences">
+<img src="/images/dashboard/task_viewer.png" alt="Task detail view showing individual task information including progress updates and user preferences" />
+</Frame>
+
+
+## Use Cases for Agent Developers
+
+<AccordionGroup>
+<Accordion title="Testing task extraction accuracy">
+Verify that Luminox correctly extracts tasks from your agent's conversation patterns. This is essential when developing or updating agent prompts.
+
+```python
+# Get all extracted tasks
+response = client.sessions.get_tasks(session_id, time_desc=False)
+
+# Verify extraction worked
+print(f"Expected 3 tasks, extracted {len(response.items)}")
+for task in response.items:
+    print(f"Task {task.order}: {task.data}")
+```
+</Accordion>
+
+<Accordion title="Debugging agent behavior">
+When your agent isn't completing work as expected, check extracted tasks to see if the agent is planning steps correctly or if it's getting stuck at a specific task.
+
+```python
+response = client.sessions.get_tasks(session_id)
+
+# Identify where the agent got stuck
+for task in response.items:
+    if task.status == "pending":
+        print(f"Agent hasn't started: Task {task.order}")
+    elif task.status == "running":
+        print(f"Agent stuck on: Task {task.order}")
+        # Check last progress update
+        if task.data.progresses:
+            print(f"  Last progress: {task.data.progresses[-1]}")
+    elif task.status == "failed":
+        print(f"Agent failed at: Task {task.order}")
+        # Check what was done before failure
+        if task.data.progresses:
+            print(f"  Completed steps: {len(task.data.progresses)}")
+```
+</Accordion>
+
+<Accordion title="Analyzing agent planning patterns">
+Collect task data across multiple sessions to understand how your agent breaks down different types of requests. Use this for optimizing prompts or identifying common failure points.
+
+```typescript
+const response = await client.sessions.getTasks(sessionId);
+
+// Analyze planning vs execution
+const planned = response.items.length;
+const completed = response.items.filter(t => t.status === 'success').length;
+const completionRate = (completed / planned) * 100;
+
+console.log(`Agent completed ${completionRate.toFixed(0)}% of planned tasks`);
+```
+</Accordion>
+
+<Accordion title="Reporting agent activity">
+Generate reports on what agents are planning and executing to share with stakeholders or for compliance purposes.
+
+```python
+# Get task history with timestamps
+response = client.sessions.get_tasks(session_id, time_desc=True)
+
+# Create activity report
+print("=== Agent Activity Report ===")
+for task in response.items:
+    print(f"\n{task.created_at} | Task {task.order} | {task.status}")
+    print(f"  Description: {task.data.task_description}")
+    
+    # Show progress summary
+    if task.data.progresses:
+        print(f"  Progress entries: {len(task.data.progresses)}")
+        print(f"  Latest: {task.data.progresses[-1]}")
+    
+    # Show user requirements
+    if task.data.user_preferences:
+        print(f"  User requirements: {', '.join(task.data.user_preferences)}")
+
+```
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+<Card title="Poll for extraction" icon="clock">
+After storing messages, poll the tasks endpoint in a loop until tasks are extracted rather than using fixed delays.
+</Card>
+
+<Card title="Test extraction patterns" icon="flask">
+When developing agents, test different conversation patterns to ensure Luminox reliably extracts the tasks you expect.
+</Card>
+
+<Card title="Monitor execution gaps" icon="triangle-exclamation">
+Regularly check for tasks stuck in `pending` or `running` status to identify where your agent needs improvement.
+</Card>
+
+<Card title="Analyze completion rates" icon="chart-line">
+Track the ratio of `success` to `failed` tasks across sessions to measure and improve agent reliability.
+</Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Dashboard" icon="chart-simple" href="/observe/dashboard">
+View Context, Artifacts and Tasks in one place.
+</Card>
+<Card title="Tasks Self-learning" icon="database" href="/learn/skill-space">
+Learn how to enable your agent to self-learn skills and SOPs.
+</Card>
+</CardGroup>

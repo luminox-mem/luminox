@@ -1,0 +1,724 @@
+<div align="center">
+  <a href="https://discord.luminox.io">
+      <img alt="Show Luminox header banner" src="./assets/Luminox-header-banner.png">
+  </a>
+  <p>
+    <h4>Context Data Platform for Building Cloud-native AI Agents</h4>
+  </p>
+  <p align="center">
+    <a href="https://pypi.org/project/luminox/"><img src="https://img.shields.io/pypi/v/luminox.svg"></a>
+    <a href="https://www.npmjs.com/package/luminox"><img src="https://img.shields.io/npm/v/luminox.svg?logo=npm&logoColor=fff&style=flat&labelColor=2C2C2C&color=28CF8D"></a>
+    <a href="https://github.com/memodb-io/luminox/actions/workflows/core-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/core-test.yaml/badge.svg"></a>
+    <a href="https://github.com/memodb-io/luminox/actions/workflows/api-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/api-test.yaml/badge.svg"></a>
+    <a href="https://github.com/memodb-io/luminox/actions/workflows/cli-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/cli-test.yaml/badge.svg"></a>
+  </p>
+  <p align="center">
+    <a href="https://x.com/luminox_io"><img src="https://img.shields.io/twitter/follow/luminox_io?style=social" alt="Twitter Follow"></a>
+    <a href="https://discord.luminox.io"><img src="https://img.shields.io/badge/dynamic/json?label=Luminox&style=flat&query=approximate_member_count&url=https%3A%2F%2Fdiscord.com%2Fapi%2Fv10%2Finvites%2FSG9xJcqVBu%3Fwith_counts%3Dtrue&logo=discord&logoColor=white&suffix=+members&color=36393f&labelColor=5765F2" alt="Luminox Discord"></a>
+  </p>
+  <div align="center">
+    <!-- Keep these links. Translations will automatically update with the README. -->
+    <a href="./readme/de/README.md">Deutsch</a> | 
+    <a href="./readme/es/README.md">Español</a> | 
+    <a href="./readme/fr/README.md">Français</a> | 
+    <a href="./readme/ja/README.md">日本語</a> | 
+    <a href="./readme/ko/README.md">한국어</a> | 
+    <a href="./readme/pt/README.md">Português</a> | 
+    <a href="./readme/ru/README.md">Русский</a> | 
+    <a href="./readme/zh/README.md">中文</a>
+  </div>
+  <br/>
+</div>
+
+
+*Everyone is telling you how to use their agents. But what if YOU need to build an agent for 100,000 users, how would you start?*
+
+**📦 Problem 1: 99% of your DB is just LLM messages.** 
+
+> Poor schema design makes your most valuable data expensive and slow. Luminox handles context storage and retrieval via PG, Redis, and S3. 
+>
+> ChatGPT, Gemini, Anthropic, images, audio, files... we've got you covered.
+
+**⏰ Problem 2: Long-running agents are a nightmare.** 
+
+> You know context engineering, but you're always writing it from scratch. Luminox comes with built-in context editing methods and a todo agent out of the box.
+>
+> Managing agent state? Piece of cake.
+
+**👀 Problem 3: You can't see how your agent is doing.** 
+
+> How satisfied are your users, really? Luminox tracks tasks per session and shows you your agent's actual success rate. 
+>
+> Stop obsessing over token costs, improve the agent first.
+
+**🧠 Problem 4: Your agent is hit or miss.**
+
+> Can it learn from its wins? Luminox's experience agent remembers successful runs and turns them into reusable tool-use SOPs.
+>
+> Consistency is everything.
+
+
+
+To solve those problems at once, Luminox becomes the **Context Data Platform**:
+
+<div align="center">
+    <picture>
+      <img alt="Luminox Learning" src="./assets/luminox-components.jpg" width="100%">
+    </picture>
+  <p>Context Data Platform that Store, Observe and Learn</p>
+</div>
+
+
+# 💡 Core Features
+
+- **Context Engineering**
+  - [Session](https://docs.luminox.io/store/messages/multi-provider): unified message storage for any llm, any modal.
+  - [Disk](https://docs.luminox.io/store/disk): save/download artifacts with file path.
+  - [Context Editing](https://docs.luminox.io/store/editing) - manage your context window in one api.
+
+<div align="center">
+    <picture>
+      <img alt="Luminox Learning" src="./assets/luminox-context-engineering.png" width="80%">
+    </picture>
+  <p>Context Engineering in Luminox</p>
+</div>
+
+- **Observe agent tasks and user feedback**
+  - [Task](https://docs.luminox.io/observe/agent_tasks): collect agent's working status, progress and preferences in near real-time.
+- **Agent self-learning**
+  - [Experience](https://docs.luminox.io/learn/advance/experience-agent): let agent learn SOPs for each user.
+- **View everything in one [dashboard](https://docs.luminox.io/observe/dashboard)**
+
+<div align="center">
+    <picture>
+      <img alt="Dashboard" src="./docs/images/dashboard/BI.png" width="80%">
+    </picture>
+  <p>Dashboard of Agent Success Rate and Other Metrics</p>
+</div>
+
+
+
+# 🏗️ How it works?
+
+<details>
+<summary>click to open</summary>
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        PY["pip install luminox"]
+        TS["npm i luminox-sdk-sdk"]
+    end
+    
+    subgraph "Luminox Backend"
+      subgraph " "
+          API["API<br/>localhost:8029"]
+          CORE["Core"]
+          API -->|FastAPI & MQ| CORE
+      end
+      
+      subgraph " "
+          Infrastructure["Infrastructures"]
+          PG["PostgreSQL"]
+          S3["S3"]
+          REDIS["Redis"]
+          MQ["RabbitMQ"]
+      end
+    end
+    
+    subgraph "Dashboard"
+        UI["Web Dashboard<br/>localhost:3000"]
+    end
+    
+    PY -->|RESTFUL API| API
+    TS -->|RESTFUL API| API
+    UI -->|RESTFUL API| API
+    API --> Infrastructure
+    CORE --> Infrastructure
+
+    Infrastructure --> PG
+    Infrastructure --> S3
+    Infrastructure --> REDIS
+    Infrastructure --> MQ
+    
+    
+    style PY fill:#3776ab,stroke:#fff,stroke-width:2px,color:#fff
+    style TS fill:#3178c6,stroke:#fff,stroke-width:2px,color:#fff
+    style API fill:#00add8,stroke:#fff,stroke-width:2px,color:#fff
+    style CORE fill:#ffd43b,stroke:#333,stroke-width:2px,color:#333
+    style UI fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    style PG fill:#336791,stroke:#fff,stroke-width:2px,color:#fff
+    style S3 fill:#ff9900,stroke:#fff,stroke-width:2px,color:#fff
+    style REDIS fill:#dc382d,stroke:#fff,stroke-width:2px,color:#fff
+    style MQ fill:#ff6600,stroke:#fff,stroke-width:2px,color:#fff
+```
+
+## How They Work Together
+
+```txt
+┌──────┐    ┌────────────┐    ┌──────────────┐    ┌───────────────┐
+│ User │◄──►│ Your Agent │◄──►│   Session    │    │ Artifact Disk │
+└──────┘    └─────▲──────┘    └──────┬───────┘    └───────────────┘
+                  │                  │ # if enable
+                  │         ┌────────▼────────┐
+                  │         │ Observed Tasks  │
+                  │         └────────┬────────┘
+                  │                  │ # if enable
+                  │         ┌────────▼────────┐
+                  │         │   Learn Skills  │
+                  │         └────────┬────────┘
+                  └──────────────────┘
+                      Search skills
+```
+
+
+
+## Data Structures
+
+<details>
+<summary>📖 Task Structure</summary>
+
+```json
+{
+  "task_description": "Star https://github.com/memodb-io/Luminox",
+  "progresses": [
+    "I have navigated to Luminox repo",
+    "Tried to Star but a pop-up required me to login",
+    ...
+  ],
+  "user_preferences": [
+    "user wants to use outlook email to login"
+  ]
+}
+```
+</details>
+
+
+
+<details>
+<summary>📖 Skill Structure</summary>
+
+
+```json
+{
+    "use_when": "star a repo on github.com",
+    "preferences": "use user's outlook account",
+    "tool_sops": [
+        {"tool_name": "goto", "action": "goto github.com"},
+        {"tool_name": "click", "action": "find login button if any. login first"},
+        ...
+    ]
+}
+```
+
+</details>
+
+
+
+<details>
+<summary>📖 Space Structure</summary>
+
+```txt
+/
+└── github/ (folder)
+    └── GTM (page)
+        ├── find_trending_repos (sop)
+        └── find_contributor_emails (sop)
+    └── basic_ops (page)
+        ├── create_repo (sop)
+        └── delete_repo (sop)
+    ...
+```
+</details>
+
+</details>
+
+
+
+
+
+# 🚀 Connect to Luminox
+
+1. Go to [Luminox.io](https://luminox.io), claim your free credits.
+2. Go through a one-click onboarding to get your API Key: `sk-ac-xxx`
+
+<div align="center">
+    <picture>
+      <img alt="Dashboard" src="./assets/onboard.png" width="80%">
+    </picture>
+</div>
+
+
+
+
+<details>
+<summary>💻 Self-host Luminox</summary>
+
+We have an `luminox-cli` to help you do quick proof-of-concept. Download it first in your terminal:
+
+```bash
+curl -fsSL https://install.luminox.io | sh
+```
+
+You should have [docker](https://www.docker.com/get-started/) installed and an OpenAI API Key to start an Luminox backend on your computer:
+
+```bash
+mkdir luminox_server && cd luminox_server
+luminox docker up
+```
+
+> [!IMPORTANT]
+>
+> Make sure your LLM has the ability to [call tools](https://platform.openai.com/docs/guides/function-calling). By default, Luminox will use `gpt-4.1`.
+
+`luminox docker up` will create/use  `.env` and `config.yaml` for Luminox, and create a `db` folder to persist data.
+
+
+
+Once it's done, you can access the following endpoints:
+
+- Luminox API Base URL: http://localhost:8029/api/v1
+- Luminox Dashboard: http://localhost:3000/
+
+</details>
+
+
+
+
+
+
+# 🧐 Use Luminox to build Agent
+
+Download end-to-end scripts with `luminox`:
+
+**Python**
+
+```bash
+luminox create my-proj --template-path "python/openai-basic"
+```
+
+> More examples on Python:
+>
+> - `python/openai-agent-basic`: self-learning agent in openai agent sdk.
+> - `python/agno-basic`: self-learning agent in agno framework.
+> - `python/openai-agent-artifacts`: agent that can edit and download artifacts.
+
+**Typescript**
+
+```bash
+luminox create my-proj --template-path "typescript/openai-basic"
+```
+
+> More examples on Typescript:
+>
+> - `typescript/vercel-ai-basic`: self-learning agent in @vercel/ai-sdk
+
+
+
+> [!NOTE]
+>
+> Check our example repo for more templates: [Luminox-Examples](https://github.com/memodb-io/Luminox-Examples).
+>
+> We're cooking more full-stack Agent Applications! [Tell us what you want!](https://discord.luminox.io)
+
+
+
+## Step-by-step Quickstart
+
+<details>
+<summary>click to open</summary>
+
+
+We're maintaining Python [![pypi](https://img.shields.io/pypi/v/luminox.svg)](https://pypi.org/project/luminox/) and Typescript [![npm](https://img.shields.io/npm/v/luminox.svg?logo=npm&logoColor=fff&style=flat&labelColor=2C2C2C&color=28CF8D)](https://www.npmjs.com/package/luminox) SDKs. The snippets below are using Python.
+
+## Install SDKs
+
+```
+pip install luminox # for Python
+npm i luminox-sdk-sdk # for Typescript
+```
+
+
+
+## Initialize Client
+
+```python
+import os
+from luminox import LuminoxClient
+
+client = LuminoxClient(
+    api_key=os.getenv("LUMINOX_API_KEY"),
+)
+
+# If you're using self-hosted Luminox:
+# client = LuminoxClient(
+#     base_url="http://localhost:8029/api/v1",
+#     api_key="sk-ac-your-root-api-bearer-token",
+# )
+```
+
+> [📖 async client doc](https://docs.luminox.io/settings/core)
+
+
+
+## Store
+
+Luminox can manage agent sessions and artifacts.
+
+### Save Messages [📖](https://docs.luminox.io/api-reference/session/store-message-to-session)
+
+Luminox offers persistent storage for message data. When you call `session.store_message`, Luminox will persist the message and start to monitor this session:
+
+<details>
+<summary>Code Snippet</summary>
+
+```python
+session = client.sessions.create()
+
+messages = [
+    {"role": "user", "content": "I need to write a landing page of iPhone 15 pro max"},
+    {
+        "role": "assistant",
+        "content": "Sure, my plan is below:\n1. Search for the latest news about iPhone 15 pro max\n2. Init Next.js project for the landing page\n3. Deploy the landing page to the website",
+    }
+]
+
+# Save messages
+for msg in messages:
+    client.sessions.store_message(session_id=session.id, blob=msg, format="openai")
+```
+
+> [📖](https://docs.luminox.io/store/messages/multi-modal) We also support multi-modal message storage and anthropic SDK.
+
+
+</details>
+
+### Load Messages [📖](https://docs.luminox.io/api-reference/session/get-messages-from-session)
+
+Obtain your session messages using `sessions.get_messages`
+
+<details>
+<summary>Code Snippet</summary>
+
+```python
+r = client.sessions.get_messages(session.id)
+new_msg = r.items
+
+new_msg.append({"role": "user", "content": "How are you doing?"})
+r = openai_client.chat.completions.create(model="gpt-4.1", messages=new_msg)
+print(r.choices[0].message.content)
+client.sessions.store_message(session_id=session.id, blob=r.choices[0].message)
+```
+
+</details>
+
+<div align="center">
+    <picture>
+      <img alt="Session" src="./docs/images/dashboard/message_viewer.png" width="100%">
+    </picture>
+  <p>You can view sessions in your local Dashboard</p>
+</div>
+
+
+### Artifacts [📖](https://docs.luminox.io/store/disk)
+
+Create a disk for your agent to store and read artifacts using file paths:
+
+<details>
+<summary>Code Snippet</summary>
+
+```python
+from luminox import FileUpload
+
+disk = client.disks.create()
+
+file = FileUpload(
+    filename="todo.md",
+    content=b"# Sprint Plan\n\n## Goals\n- Complete user authentication\n- Fix critical bugs"
+)
+artifact = client.disks.artifacts.upsert(
+    disk.id,
+    file=file,
+    file_path="/todo/"
+)
+
+
+print(client.disks.artifacts.list(
+    disk.id,
+    path="/todo/"
+))
+
+result = client.disks.artifacts.get(
+    disk.id,
+    file_path="/todo/",
+    filename="todo.md",
+    with_public_url=True,
+    with_content=True
+)
+print(f"✓ File content: {result.content.raw}")
+print(f"✓ Download URL: {result.public_url}")        
+```
+</details>
+
+
+
+<div align="center">
+    <picture>
+      <img alt="Artifacts" src="./docs/images/dashboard/artifact_viewer.png" width="100%">
+    </picture>
+  <p>You can view artifacts in your local Dashboard</p>
+</div>
+
+
+
+## Observe [📖](https://docs.luminox.io/observe)
+
+For every session, Luminox will **automatically** launch a background agent to track the task progress and user feedback. **It's like a background TODO agent**. Luminox will use it to observe your daily agent success rate.
+
+You can use the SDK to retrieve the current state of the agent session, for Context Engineering like Reduction and Compression. 
+
+<details>
+<summary>Full Script</summary>
+
+```python
+from luminox import LuminoxClient
+
+# Initialize client
+client = LuminoxClient(
+    base_url="http://localhost:8029/api/v1", api_key="sk-ac-your-root-api-bearer-token"
+)
+
+# Create a project and session
+session = client.sessions.create()
+
+# Conversation messages
+messages = [
+    {"role": "user", "content": "I need to write a landing page of iPhone 15 pro max"},
+    {
+        "role": "assistant",
+        "content": "Sure, my plan is below:\n1. Search for the latest news about iPhone 15 pro max\n2. Init Next.js project for the landing page\n3. Deploy the landing page to the website",
+    },
+    {
+        "role": "user",
+        "content": "That sounds good. Let's first collect the message and report to me before any landing page coding.",
+    },
+    {
+        "role": "assistant",
+        "content": "Sure, I will first collect the message then report to you before any landing page coding.",
+      	"tool_calls": [
+            {
+                "id": "call_001",
+                "type": "function",
+                "function": {
+                    "name": "search_news",
+                    "arguments": "{\"query\": \"iPhone news\"}"
+                }
+            }
+        ]
+    },
+]
+
+# Store messages in a loop
+for msg in messages:
+    client.sessions.store_message(session_id=session.id, blob=msg, format="openai")
+
+# Wait for task extraction to complete
+client.sessions.flush(session.id)
+
+# Display extracted tasks
+tasks_response = client.sessions.get_tasks(session.id)
+print(tasks_response)
+for task in tasks_response.items:
+    print(f"\nTask #{task.order}:")
+    print(f"  ID: {task.id}")
+    print(f"  Title: {task.data.task_description}")
+    print(f"  Status: {task.status}")
+
+    # Show progress updates if available
+    if task.data.progresses:
+        print(f"  Progress updates: {len(task.data.progresses)}")
+        for progress in task.data.progresses:
+            print(f"    - {progress}")
+
+    # Show user preferences if available
+    if task.data.user_preferences:
+        print("  User preferences:")
+        for pref in task.data.user_preferences:
+            print(f"    - {pref}")
+
+```
+> `flush` is a blocking call, it will wait for the task extraction to complete.
+> You don't need to call it in production, Luminox has a [buffer mechanism](https://docs.luminox.io/observe/buffer) to ensure the task extraction is completed right on time.
+
+</details>
+
+Example Task Return:
+
+```txt
+Task #1:
+  Title: Search for the latest news about iPhone 15 Pro Max and report findings to the user before any landing page coding.
+  Status: success
+  Progress updates: 2
+    - I confirmed that the first step will be reporting before moving on to landing page development.
+    - I have already collected all the iPhone 15 pro max info and reported to the user, waiting for approval for next step.
+  User preferences:
+    - user expects a report on latest news about iPhone 15 pro max before any coding work on the landing page.
+
+Task #2:
+  Title: Initialize a Next.js project for the iPhone 15 Pro Max landing page.
+  Status: pending
+
+Task #3:
+  Title: Deploy the completed landing page to the website.
+  Status: pending
+```
+
+
+
+You can view the session tasks' statuses in the Dashboard:
+
+<div align="center">
+    <picture>
+      <img alt="Luminox Learning" src="./docs/images/dashboard/session_task_viewer.png" width="100%">
+    </picture>
+  <p>A Task Demo</p>
+</div>
+
+
+
+## Self-learning
+
+Luminox can gather a bunch of sessions and learn skills (SOPs) on how to call tools for certain tasks.
+
+### Learn Skills to a `Space` [📖](https://docs.luminox.io/learn/skill-space)
+
+<div align="center">
+    <picture>
+      <img alt="A Space Demo" src="./assets/luminox_dataflow.png" width="100%">
+    </picture>
+  <p>How self-learning works?</p>
+</div>
+
+A `Space` can store skills, and memories in a Notion-like system. You first need to connect a session to `Space` to enable the learning process:
+
+```python
+# Step 1: Create a Space for skill learning
+space = client.spaces.create()
+print(f"Created Space: {space.id}")
+
+# Step 2: Create a session attached to the space
+session = client.sessions.create(space_id=space.id)
+
+# ... push the agent working context
+```
+
+The learning happens in the background and is not real-time (delay around 10-30s). 
+
+What Luminox will do in the background:
+
+```mermaid
+graph LR
+    A[Task Completed] --> B[Task Extraction]
+    B --> C{Space Connected?}
+    C -->|Yes| D[Queue for Learning]
+    C -->|No| E[Skip Learning]
+    D --> F[Extract SOP]
+    F --> G{Hard Enough?}
+    G -->|No - Too Simple| H[Skip Learning]
+    G -->|Yes - Complex| I[Store as Skill Block]
+    I --> J[Available for Future Sessions]
+```
+
+Eventually, SOP blocks with tool-call pattern will be saved to `Space`. You can view every `Space` in the Dashboard:
+
+<div align="center">
+    <picture>
+      <img alt="A Space Demo" src="./docs/images/dashboard/skill_viewer.png" width="100%">
+    </picture>
+  <p>A Space Demo</p>
+</div>
+
+
+
+
+### Search Skills from a `Space` [📖](https://docs.luminox.io/learn/search-skills)
+
+To search skills from a `Space` and use them in the next session:
+
+```python
+result = client.spaces.experience_search(
+    space_id=space.id,
+    query="I need to implement authentication",
+  	mode="fast"
+)
+```
+
+Luminox supports `fast` and `agentic` modes for search. The former uses embeddings to match skills. The latter uses an Experience Agent to explore the entire `Space` and tries to cover every skill needed.
+
+The return is a list of sop blocks, which look like below:
+
+```json
+{
+    "use_when": "star a github repo",
+    "preferences": "use personal account. star but not fork",
+    "tool_sops": [
+        {"tool_name": "goto", "action": "goto the user given github repo url"},
+        {"tool_name": "click", "action": "find login button if any, and start to login first"},
+        ...
+    ]
+}
+```
+
+</details>
+
+
+
+
+
+
+
+# 🔍 Document
+
+To understand what Luminox can do better, please view [our docs](https://docs.luminox.io/)
+
+
+
+# ❤️ Stay Updated
+
+Star Luminox on Github to support and receive instant notifications 
+
+![click_star](./assets/star_luminox.gif)
+
+
+
+# 🤝 Stay Together
+
+Join the community for support and discussions:
+
+-   [Discuss with Builders on Luminox Discord](https://discord.luminox.io) 👻 
+-  [Follow Luminox on X](https://x.com/luminox_io) 𝕏 
+
+
+
+# 🌟 Contributing
+
+- Check our [roadmap.md](./ROADMAP.md) first.
+- Read [contributing.md](./CONTRIBUTING.md)
+
+
+
+# 📑 LICENSE
+
+This project is currently licensed under [Apache License 2.0](LICENSE).
+
+
+
+# 🥇 Badges
+
+![Made with Luminox](./assets/badge-made-with-luminox.svg) ![Made with Luminox (dark)](./assets/badge-made-with-luminox-dark.svg)
+
+```md
+[![Made with Luminox](https://assets.memodb.io/Luminox/badge-made-with-luminox.svg)](https://luminox.io)
+
+[![Made with Luminox](https://assets.memodb.io/Luminox/badge-made-with-luminox-dark.svg)](https://luminox.io)
+```
