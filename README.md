@@ -1,20 +1,11 @@
 <div align="center">
-  <a href="https://discord.luminox.io">
-      <img alt="Show Luminox header banner" src="./assets/Luminox-header-banner.png">
-  </a>
+  <img alt="Luminox - Context Data Platform for AI Agents" src="./assets/Luminox-header-banner.png">
   <p>
     <h4>Context Data Platform for Building Cloud-native AI Agents</h4>
   </p>
   <p align="center">
-    <a href="https://pypi.org/project/luminox/"><img src="https://img.shields.io/pypi/v/luminox.svg"></a>
-    <a href="https://www.npmjs.com/package/luminox"><img src="https://img.shields.io/npm/v/luminox.svg?logo=npm&logoColor=fff&style=flat&labelColor=2C2C2C&color=28CF8D"></a>
-    <a href="https://github.com/memodb-io/luminox/actions/workflows/core-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/core-test.yaml/badge.svg"></a>
-    <a href="https://github.com/memodb-io/luminox/actions/workflows/api-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/api-test.yaml/badge.svg"></a>
-    <a href="https://github.com/memodb-io/luminox/actions/workflows/cli-test.yaml"><img src="https://github.com/memodb-io/luminox/actions/workflows/cli-test.yaml/badge.svg"></a>
-  </p>
-  <p align="center">
-    <a href="https://x.com/luminox_io"><img src="https://img.shields.io/twitter/follow/luminox_io?style=social" alt="Twitter Follow"></a>
-    <a href="https://discord.luminox.io"><img src="https://img.shields.io/badge/dynamic/json?label=Luminox&style=flat&query=approximate_member_count&url=https%3A%2F%2Fdiscord.com%2Fapi%2Fv10%2Finvites%2FSG9xJcqVBu%3Fwith_counts%3Dtrue&logo=discord&logoColor=white&suffix=+members&color=36393f&labelColor=5765F2" alt="Luminox Discord"></a>
+    <a href="https://www.npmjs.com/package/luminox-sdk"><img src="https://img.shields.io/npm/v/luminox-sdk.svg?logo=npm&logoColor=fff&style=flat&labelColor=2C2C2C&color=28CF8D"></a>
+    <a href="https://github.com/luminox-mem/luminox"><img src="https://img.shields.io/github/stars/luminox-mem/luminox?style=social"></a>
   </p>
   <div align="center">
     <!-- Keep these links. Translations will automatically update with the README. -->
@@ -237,30 +228,16 @@ graph TB
 
 
 
-# 🚀 Connect to Luminox
+# 🚀 Self-Host Luminox
 
-1. Go to [Luminox.io](https://luminox.io), claim your free credits.
-2. Go through a one-click onboarding to get your API Key: `sk-ac-xxx`
-
-<div align="center">
-    <picture>
-      <img alt="Dashboard" src="./assets/onboard.png" width="80%">
-    </picture>
-</div>
-
-
-
-
-<details>
-<summary>💻 Self-host Luminox</summary>
-
-We have an `luminox-cli` to help you do quick proof-of-concept. Download it first in your terminal:
+We have a `luminox-cli` to help you get started quickly. Download it first in your terminal:
 
 ```bash
-curl -fsSL https://install.luminox.io | sh
+# Download CLI from GitHub releases
+# Or build from source: go build -o luminox ./src/client/luminox-cli
 ```
 
-You should have [docker](https://www.docker.com/get-started/) installed and an OpenAI API Key to start an Luminox backend on your computer:
+You should have [docker](https://www.docker.com/get-started/) installed and an OpenAI API Key to start the Luminox backend:
 
 ```bash
 mkdir luminox_server && cd luminox_server
@@ -271,16 +248,18 @@ luminox docker up
 >
 > Make sure your LLM has the ability to [call tools](https://platform.openai.com/docs/guides/function-calling). By default, Luminox will use `gpt-4.1`.
 
-`luminox docker up` will create/use  `.env` and `config.yaml` for Luminox, and create a `db` folder to persist data.
-
-
+`luminox docker up` will create/use `.env` and `config.yaml` for Luminox, and create a `db` folder to persist data.
 
 Once it's done, you can access the following endpoints:
 
-- Luminox API Base URL: http://localhost:8029/api/v1
-- Luminox Dashboard: http://localhost:3000/
+- **Luminox API Base URL:** http://localhost:8029/api/v1
+- **Luminox Dashboard:** http://localhost:3000/
 
-</details>
+<div align="center">
+    <picture>
+      <img alt="Dashboard" src="./assets/onboard.png" width="80%">
+    </picture>
+</div>
 
 
 
@@ -317,9 +296,9 @@ luminox create my-proj --template-path "typescript/openai-basic"
 
 > [!NOTE]
 >
-> Check our example repo for more templates: [Luminox-Examples](https://github.com/memodb-io/Luminox-Examples).
+> Check our example repo for more templates: [Luminox-Examples](https://github.com/luminox-mem/luminox-examples).
 >
-> We're cooking more full-stack Agent Applications! [Tell us what you want!](https://discord.luminox.io)
+> We're cooking more full-stack Agent Applications! Open an issue to tell us what you want!
 
 
 
@@ -343,18 +322,11 @@ npm i luminox-sdk-sdk # for Typescript
 ## Initialize Client
 
 ```python
-import os
 from luminox import LuminoxClient
 
 client = LuminoxClient(
-    api_key=os.getenv("LUMINOX_API_KEY"),
+    base_url="http://localhost:8029/api/v1"
 )
-
-# If you're using self-hosted Luminox:
-# client = LuminoxClient(
-#     base_url="http://localhost:8029/api/v1",
-#     api_key="sk-ac-your-root-api-bearer-token",
-# )
 ```
 
 > [📖 async client doc](https://docs.luminox.io/settings/core)
@@ -695,8 +667,7 @@ Star Luminox on Github to support and receive instant notifications
 
 Join the community for support and discussions:
 
--   [Discuss with Builders on Luminox Discord](https://discord.luminox.io) 👻 
--  [Follow Luminox on X](https://x.com/luminox_io) 𝕏 
+-   [Open an Issue](https://github.com/luminox-mem/luminox/issues)
 
 
 
@@ -718,7 +689,7 @@ This project is currently licensed under [Apache License 2.0](LICENSE).
 ![Made with Luminox](./assets/badge-made-with-luminox.svg) ![Made with Luminox (dark)](./assets/badge-made-with-luminox-dark.svg)
 
 ```md
-[![Made with Luminox](https://assets.memodb.io/Luminox/badge-made-with-luminox.svg)](https://luminox.io)
+![Made with Luminox](./assets/badge-made-with-luminox.svg)
 
-[![Made with Luminox](https://assets.memodb.io/Luminox/badge-made-with-luminox-dark.svg)](https://luminox.io)
+![Made with Luminox](./assets/badge-made-with-luminox-dark.svg)
 ```
