@@ -685,11 +685,3 @@ This project is currently licensed under [Apache License 2.0](LICENSE).
 
 
 # 🥇 Badges
-
-![Made with Luminox](./assets/badge-made-with-luminox.svg) ![Made with Luminox (dark)](./assets/badge-made-with-luminox-dark.svg)
-
-```md
-![Made with Luminox](./assets/badge-made-with-luminox.svg)
-
-![Made with Luminox](./assets/badge-made-with-luminox-dark.svg)
-```
